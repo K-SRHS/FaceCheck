@@ -1,20 +1,19 @@
-import cv2
 from flask import Flask, render_template, Response
-import sys
-
-sys.path.append('/home/runner/FaceCheck-1/venv/lib/python3.10/site-packages')
+import cv2
 
 app = Flask(__name__)
 
 # Load the pre-trained face detection model
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +
-                                     'haarcascade_frontalface_default.xml')
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades +'haarcascade_frontalface_default.xml')
 
 # Load the sticker image
-sticker = cv2.imread('C:/Users/yunho/Desktop/PythonWorkspace/MPJ/sticker.png',
-                     cv2.IMREAD_UNCHANGED)
+sticker = cv2.imread('sticker.png', cv2.IMREAD_UNCHANGED)
+
 # Convert the sticker to RGBA format
 sticker = cv2.cvtColor(sticker, cv2.COLOR_BGR2BGRA)
+
+# Start capturing video from the default camera
+cap = cv2.VideoCapture(0)
 
 # Initialize flags for selected effects
 apply_mosaic = False
@@ -70,11 +69,6 @@ def apply_effects(frame):
     return frame
 
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-
 def generate_frames():
     while True:
         # Read a frame from the video stream
@@ -86,15 +80,18 @@ def generate_frames():
         # Apply the selected effects to the frame
         output_frame = apply_effects(frame)
 
-        # Encode the frame as JPEG
+        # Convert the frame to JPEG format
         ret, buffer = cv2.imencode('.jpg', output_frame)
-
-        # Convert the buffer to bytes
         frame_bytes = buffer.tobytes()
 
-        # Yield the frame bytes as a response
+        # Yield the frame in bytes
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 
 @app.route('/video_feed')
@@ -104,10 +101,4 @@ def video_feed():
 
 
 if __name__ == '__main__':
-    cap = cv2.VideoCapture(0)
-
-    # Check if the webcam is opened successfully
-    if not cap.isOpened():
-        raise IOError("Cannot open webcam")
-
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=8080)
